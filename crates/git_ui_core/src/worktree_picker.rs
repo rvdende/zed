@@ -17,8 +17,10 @@ use ui::{
     Button, CommonAnimationExt as _, Divider, HighlightedLabel, IconButton, KeyBinding, ListItem,
     ListItemSpacing, ListSubHeader, Tooltip, prelude::*,
 };
-use util::ResultExt as _;
-use util::paths::PathExt;
+use util::{
+    ResultExt as _,
+    paths::{PathExt, PathStyle},
+};
 use workspace::{
     ModalView, MultiWorkspace, RemovalIntent, Workspace, dock::DockPosition,
     notifications::DetachAndPromptErr,
@@ -89,10 +91,18 @@ impl WorktreePicker {
 
         let has_multiple_repositories = project_ref.repositories(cx).len() > 1;
         let repository = project_ref.active_repository(cx);
-        let repository_identity_path = repository.as_ref().map(|repository| {
+        let (repository_identity_path, path_style) = if let Some(repository) = &repository {
             let repository = repository.read(cx);
-            repo_identity_path(&repository.common_dir_abs_path, repository.path_style).to_path_buf()
-        });
+            (
+                Some(
+                    repo_identity_path(&repository.common_dir_abs_path, repository.path_style)
+                        .to_path_buf(),
+                ),
+                repository.path_style,
+            )
+        } else {
+            (None, project_ref.path_style(cx))
+        };
 
         let current_branch_name = repository.as_ref().and_then(|repo| {
             repo.read(cx)
@@ -115,6 +125,7 @@ impl WorktreePicker {
             matches: initial_matches,
             all_worktrees: Vec::new(),
             repository_identity_path,
+            path_style,
             project_worktree_paths,
             selected_index: 0,
             project,
@@ -295,6 +306,7 @@ struct WorktreePickerDelegate {
     matches: Vec<WorktreeEntry>,
     all_worktrees: Vec<GitWorktree>,
     repository_identity_path: Option<PathBuf>,
+    path_style: PathStyle,
     project_worktree_paths: HashSet<PathBuf>,
     active_worktree_paths: HashSet<PathBuf>,
     selected_index: usize,
@@ -519,7 +531,7 @@ impl WorktreePickerDelegate {
             return;
         };
         let path = worktree.path.clone();
-        let display_name = worktree.directory_name(self.worktree_name_anchor());
+        let display_name = worktree.directory_name(self.worktree_name_anchor(), self.path_style);
         let workspace = self.workspace.clone();
 
         self.deleting_worktree_paths.insert(path.clone());
@@ -805,7 +817,8 @@ impl PickerDelegate for WorktreePickerDelegate {
         let normalized_query = query.replace(' ', "-");
         let worktree_name_anchor = self.worktree_name_anchor().map(Path::to_path_buf);
         let has_named_worktree = self.all_worktrees.iter().any(|worktree| {
-            worktree.directory_name(worktree_name_anchor.as_deref()) == normalized_query
+            worktree.directory_name(worktree_name_anchor.as_deref(), self.path_style)
+                == normalized_query
         });
         let create_named_disabled_reason: Option<String> = if self.has_multiple_repositories {
             Some("Cannot create a named worktree in a project with multiple repositories".into())
@@ -826,8 +839,8 @@ impl PickerDelegate for WorktreePickerDelegate {
                 let project_paths = &self.project_worktree_paths;
 
                 let sort_by_name = |a: &GitWorktree, b: &GitWorktree| {
-                    a.directory_name(worktree_name_anchor.as_deref())
-                        .cmp(&b.directory_name(worktree_name_anchor.as_deref()))
+                    a.directory_name(worktree_name_anchor.as_deref(), self.path_style)
+                        .cmp(&b.directory_name(worktree_name_anchor.as_deref(), self.path_style))
                 };
 
                 let (mut open_here, mut others): (Vec<_>, Vec<_>) = repo_worktrees
@@ -878,7 +891,7 @@ impl PickerDelegate for WorktreePickerDelegate {
             .map(|(ix, worktree)| {
                 StringMatchCandidate::new(
                     ix,
-                    &worktree.directory_name(worktree_name_anchor.as_deref()),
+                    &worktree.directory_name(worktree_name_anchor.as_deref(), self.path_style),
                 )
             })
             .collect();
@@ -1011,8 +1024,10 @@ impl PickerDelegate for WorktreePickerDelegate {
                                     workspace,
                                     &SwitchWorktree {
                                         path: worktree.path.clone(),
-                                        display_name: worktree
-                                            .directory_name(self.worktree_name_anchor()),
+                                        display_name: worktree.directory_name(
+                                            self.worktree_name_anchor(),
+                                            self.path_style,
+                                        ),
                                     },
                                     window,
                                     self.focused_dock,
@@ -1122,7 +1137,8 @@ impl PickerDelegate for WorktreePickerDelegate {
                 worktree,
                 positions,
             } => {
-                let display_name = worktree.directory_name(self.worktree_name_anchor());
+                let display_name =
+                    worktree.directory_name(self.worktree_name_anchor(), self.path_style);
                 let first_line = display_name.lines().next().unwrap_or(&display_name);
                 let positions: Vec<_> = positions
                     .iter()
@@ -1693,7 +1709,39 @@ mod tests {
         let worktrees = [worktree.clone()];
         let name_anchor = worktree_name_anchor(&worktrees, Some(Path::new("/repos/zed")));
 
-        assert_eq!(worktree.directory_name(name_anchor), "plum-warbler");
+        assert_eq!(
+            worktree.directory_name(name_anchor, PathStyle::Unix),
+            "plum-warbler"
+        );
+    }
+
+    #[test]
+    fn test_windows_bare_repository_worktree_uses_generated_name() {
+        for (worktree_path, repository_identity_path) in [
+            (r"C:\worktrees\zed\glossy-walrus\zed", r"C:\repos\zed"),
+            (
+                r"\\server\share\worktrees\zed\glossy-walrus\zed",
+                r"\\server\share\repos\zed",
+            ),
+            (r"C:/worktrees\zed/glossy-walrus\zed", r"C:\repos/zed"),
+        ] {
+            let worktree = GitWorktree {
+                path: PathBuf::from(worktree_path),
+                ref_name: None,
+                sha: "8166e3d".into(),
+                is_main: false,
+                is_bare: false,
+            };
+            let worktrees = [worktree.clone()];
+            let name_anchor =
+                worktree_name_anchor(&worktrees, Some(Path::new(repository_identity_path)));
+
+            assert_eq!(
+                worktree.directory_name(name_anchor, PathStyle::Windows),
+                "glossy-walrus",
+                "worktree path: {worktree_path}"
+            );
+        }
     }
 
     async fn init_worktree_picker_test(
