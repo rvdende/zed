@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ $# -gt 0 ]]; then
+  echo "
+  Usage: ${0##*/}
+  Builds zed and its CLI in release mode and installs them into ~/.local/zed.app,
+  making the CLI available as ~/.local/bin/zed.
+
+  Unlike script/install-linux this skips the full bundle, but keeps the same layout so
+  running \`zed\` from a terminal detaches and logs to a file like an official release.
+  "
+  exit 1
+fi
+
+target_dir="${CARGO_TARGET_DIR:-target}"
+app_dir="$HOME/.local/zed.app"
+
+cargo build --release --package zed --package cli
+
+# `install` replaces the destination instead of writing through it, which avoids
+# "Text file busy" while zed is running and never follows the ~/.local/bin/zed symlink.
+# The CLI must be bin/zed: it launches libexec/zed-editor detached from the terminal.
+install -D "${target_dir}/release/zed" "${app_dir}/libexec/zed-editor"
+install -D "${target_dir}/release/cli" "${app_dir}/bin/zed"
+
+mkdir -p "$HOME/.local/bin"
+ln -sfn "${app_dir}/bin/zed" "$HOME/.local/bin/zed"
+
+echo "Installed. Run with 'zed'. Restart any running Zed to pick up the new build."
