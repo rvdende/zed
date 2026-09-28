@@ -1065,6 +1065,7 @@
     "bindings": {
       "space": "project_panel::OpenPermanent",
       "enter": "project_panel::OpenPermanent",
+      "alt-space": "project_panel::OpenRenderedPreview",
     },
   },
   {
@@ -1629,6 +1630,18 @@
       "cmd-0": "image_viewer::ResetZoom",
       "cmd-1": "image_viewer::ZoomToActualSize",
       "cmd-k r": "editor::RevealInFileManager",
+      "cmd-shift-0": "image_viewer::FitToView",
+    },
+  },
+  {
+    "context": "SvgPreview",
+    "use_key_equivalents": true,
+    "bindings": {
+      "cmd-=": "image_viewer::ZoomIn",
+      "cmd-+": "image_viewer::ZoomIn",
+      "cmd--": "image_viewer::ZoomOut",
+      "cmd-0": "image_viewer::ResetZoom",
+      "cmd-1": "image_viewer::ZoomToActualSize",
       "cmd-shift-0": "image_viewer::FitToView",
     },
   },

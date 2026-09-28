@@ -177,6 +177,70 @@ async fn test_opening_file(cx: &mut gpui::TestAppContext) {
 }
 
 #[gpui::test]
+async fn test_open_rendered_preview_of_svg(cx: &mut gpui::TestAppContext) {
+    init_test_with_editor(cx);
+
+    let fs = FakeFs::new(cx.executor());
+    fs.insert_tree(
+        path!("/src"),
+        json!({
+            "icon.svg": r#"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"></svg>"#,
+            "main.rs": "fn main() {}",
+        }),
+    )
+    .await;
+
+    let project = Project::test(fs.clone(), [path!("/src").as_ref()], cx).await;
+    let window = cx.add_window(|window, cx| MultiWorkspace::test_new(project.clone(), window, cx));
+    let workspace = window
+        .read_with(cx, |mw, _| mw.workspace().clone())
+        .unwrap();
+    let cx = &mut VisualTestContext::from_window(window.into(), cx);
+    let panel = workspace.update_in(cx, ProjectPanel::new);
+    cx.run_until_parked();
+
+    let open_items = |cx: &mut VisualTestContext| {
+        workspace.update(cx, |workspace, cx| {
+            workspace
+                .active_pane()
+                .read(cx)
+                .items()
+                .map(|item| {
+                    (
+                        item.downcast::<SvgPreviewView>().is_some(),
+                        item.act_as::<Editor>(cx).is_some(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        })
+    };
+
+    select_path(&panel, "src/icon.svg", cx);
+    for _ in 0..2 {
+        panel.update_in(cx, |panel, window, cx| {
+            panel.open_rendered_preview(&OpenRenderedPreview, window, cx)
+        });
+        cx.run_until_parked();
+    }
+    assert_eq!(
+        open_items(cx),
+        vec![(true, false)],
+        "a single SVG preview should be open, without an editor"
+    );
+
+    select_path(&panel, "src/main.rs", cx);
+    panel.update_in(cx, |panel, window, cx| {
+        panel.open_rendered_preview(&OpenRenderedPreview, window, cx)
+    });
+    cx.run_until_parked();
+    assert_eq!(
+        open_items(cx),
+        vec![(true, false)],
+        "files without a rendered preview should not be opened"
+    );
+}
+
+#[gpui::test]
 async fn test_file_history_action_uses_focused_project_panel_selection(
     cx: &mut gpui::TestAppContext,
 ) {

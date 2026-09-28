@@ -56,8 +56,9 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
     sync::Arc,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime},
 };
+use svg_preview::{MAX_SVG_THUMBNAIL_FILE_SIZE, svg_preview_view::SvgPreviewView, svg_thumbnail};
 use theme_settings::ThemeSettings;
 use ui::{
     ContextMenu, DecoratedIcon, IconDecoration, IconDecorationKind, IndentGuideColors,
@@ -291,6 +292,7 @@ struct EntryDetails {
     is_private: bool,
     worktree_id: WorktreeId,
     canonical_path: Option<Arc<Path>>,
+    svg_thumbnail: Option<(Arc<Path>, Option<SystemTime>)>,
 }
 
 /// The glyph a row's diagnostic mark decorates, and the shape of that mark.
@@ -427,6 +429,9 @@ actions!(
         Redo,
         /// Opens a markdown preview for the selected file.
         OpenMarkdownPreview,
+        /// Opens a rendered preview of the selected file, for file types that have one
+        /// (Markdown and SVG).
+        OpenRenderedPreview,
     ]
 );
 
@@ -1113,6 +1118,7 @@ impl ProjectPanel {
                     entry.path.as_std_path(),
                     project.languages(),
                 );
+            let is_svg = !is_dir && SvgPreviewView::is_svg_path(entry.path.as_std_path());
 
             let settings = ProjectPanelSettings::get_global(cx);
             let visible_worktrees_count = project.visible_worktrees(cx).count();
@@ -1144,6 +1150,9 @@ impl ProjectPanel {
                         menu.when(is_markdown, |menu| {
                             menu.action("Open Markdown Preview", Box::new(OpenMarkdownPreview))
                         })
+                        .when(is_svg, |menu| {
+                            menu.action("Open SVG Preview", Box::new(OpenRenderedPreview))
+                        })
                         .when(is_dir, |menu| {
                             menu.action("Search Inside", Box::new(NewSearchInDirectory))
                         })
@@ -1163,6 +1172,9 @@ impl ProjectPanel {
                             .action("Open in Terminal", Box::new(OpenInTerminal))
                             .when(is_markdown, |menu| {
                                 menu.action("Open Markdown Preview", Box::new(OpenMarkdownPreview))
+                            })
+                            .when(is_svg, |menu| {
+                                menu.action("Open SVG Preview", Box::new(OpenRenderedPreview))
                             })
                             .when(is_dir, |menu| {
                                 menu.separator()
@@ -1827,6 +1839,89 @@ impl ProjectPanel {
                 MarkdownPreviewView::open_for_project_path(project_path, workspace, window, cx);
             })
             .ok();
+    }
+
+    fn open_rendered_preview(
+        &mut self,
+        _: &OpenRenderedPreview,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some((worktree, entry)) = self.selected_entry(cx) else {
+            return;
+        };
+        let selection = SelectedEntry {
+            worktree_id: worktree.id(),
+            entry_id: entry.id,
+        };
+        self.open_rendered_preview_for_entry(selection, true, false, window, cx);
+    }
+
+    /// Returns `false` when the entry's file type has no rendered preview.
+    fn open_rendered_preview_for_entry(
+        &mut self,
+        selection: SelectedEntry,
+        focus_opened_item: bool,
+        allow_preview: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let Some(entry) = self
+            .project
+            .read(cx)
+            .worktree_for_id(selection.worktree_id, cx)
+            .and_then(|worktree| worktree.read(cx).entry_for_id(selection.entry_id))
+        else {
+            return false;
+        };
+        if !entry.is_file() {
+            return false;
+        }
+        let project_path = ProjectPath {
+            worktree_id: selection.worktree_id,
+            path: entry.path.clone(),
+        };
+
+        if SvgPreviewView::is_svg_path(entry.path.as_std_path()) {
+            self.workspace
+                .update(cx, |workspace, cx| {
+                    SvgPreviewView::open_for_project_path(
+                        project_path,
+                        focus_opened_item,
+                        allow_preview,
+                        workspace,
+                        window,
+                        cx,
+                    )
+                    .detach_and_prompt_err(
+                        "Failed to open SVG preview",
+                        window,
+                        cx,
+                        |_, _, _| None,
+                    );
+                })
+                .ok();
+        } else if MarkdownPreviewView::is_markdown_path(
+            entry.path.as_std_path(),
+            self.project.read(cx).languages(),
+        ) {
+            self.workspace
+                .update(cx, |workspace, cx| {
+                    MarkdownPreviewView::open_for_project_path(project_path, workspace, window, cx);
+                })
+                .ok();
+        } else {
+            return false;
+        }
+
+        self.marked_entries.clear();
+        self.marked_entries.push(selection);
+        self.selection = Some(selection);
+        if !focus_opened_item {
+            window.focus(&self.focus_handle, cx);
+        }
+        cx.notify();
+        true
     }
 
     fn open_internal(
@@ -6212,6 +6307,17 @@ impl ProjectPanel {
                         let click_count = event.click_count();
                         let focus_opened_item = click_count > 1;
                         let allow_preview = preview_tabs_enabled && click_count == 1;
+                        if event.modifiers().alt
+                            && project_panel.open_rendered_preview_for_entry(
+                                selection,
+                                focus_opened_item,
+                                allow_preview,
+                                window,
+                                cx,
+                            )
+                        {
+                            return;
+                        }
                         project_panel.open_entry(entry_id, focus_opened_item, allow_preview, cx);
                     }
                 }),
@@ -6328,8 +6434,24 @@ impl ProjectPanel {
                                 Some((DiagnosticMark::OnIcon(decoration_kind), color)) => {
                                     div().child(decorated(icon.clone(), decoration_kind, color))
                                 }
-                                _ => h_flex()
-                                    .child(Icon::from_path(icon.to_string()).color(Color::Muted)),
+                                _ => match details.svg_thumbnail.clone() {
+                                    Some((abs_path, mtime)) => {
+                                        let icon = icon.clone();
+                                        h_flex().child(svg_thumbnail(
+                                            abs_path,
+                                            mtime,
+                                            IconSize::default(),
+                                            move || {
+                                                Icon::from_path(icon.clone())
+                                                    .color(Color::Muted)
+                                                    .into_any_element()
+                                            },
+                                        ))
+                                    }
+                                    None => h_flex().child(
+                                        Icon::from_path(icon.to_string()).color(Color::Muted),
+                                    ),
+                                },
                             })
                         } else if let Some(DiagnosticMark::Standalone(icon_name)) = diagnostic_mark
                         {
@@ -6779,6 +6901,22 @@ impl ProjectPanel {
             .as_ref()
             .is_some_and(|e| e.is_cut() && e.items().contains(&selection));
 
+        let svg_thumbnail = if icon.is_some()
+            && entry.is_file()
+            && entry.size <= MAX_SVG_THUMBNAIL_FILE_SIZE
+            && SvgPreviewView::is_svg_path(entry.path.as_std_path())
+            && let Some(worktree) = self.project.read(cx).worktree_for_id(worktree_id, cx)
+            && worktree.read(cx).is_local()
+        {
+            let abs_path = worktree.read(cx).absolutize(&entry.path);
+            Some((
+                Arc::from(abs_path),
+                entry.mtime.map(|mtime| mtime.timestamp_for_user()),
+            ))
+        } else {
+            None
+        };
+
         EntryDetails {
             filename,
             chevron,
@@ -6803,6 +6941,7 @@ impl ProjectPanel {
             is_private: entry.is_private,
             worktree_id,
             canonical_path: entry.canonical_path.clone(),
+            svg_thumbnail,
         }
     }
 
@@ -7239,6 +7378,7 @@ impl Render for ProjectPanel {
                 .on_action(cx.listener(Self::open_split_vertical))
                 .on_action(cx.listener(Self::open_split_horizontal))
                 .on_action(cx.listener(Self::open_markdown_preview))
+                .on_action(cx.listener(Self::open_rendered_preview))
                 .on_action(cx.listener(Self::confirm))
                 .on_action(cx.listener(Self::cancel))
                 .on_action(cx.listener(Self::copy_path))

@@ -2,6 +2,9 @@ use gpui::{App, actions};
 use workspace::Workspace;
 
 pub mod svg_preview_view;
+mod svg_thumbnail;
+
+pub use svg_thumbnail::{MAX_SVG_THUMBNAIL_FILE_SIZE, svg_thumbnail};
 
 pub use zed_actions::preview::svg::{OpenPreview, OpenPreviewToTheSide};
 
