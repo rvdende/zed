@@ -945,6 +945,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "gpui",
+ "icon-rs",
  "util",
 ]
 
@@ -1362,6 +1363,29 @@ dependencies = [
  "settings",
  "thiserror 2.0.17",
  "util",
+]
+
+[[package]]
+name = "audio_player"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assets",
+ "audio",
+ "editor",
+ "file_icons",
+ "gpui",
+ "language",
+ "log",
+ "project",
+ "rodio",
+ "settings",
+ "symphonia",
+ "theme_settings",
+ "ui",
+ "util",
+ "workspace",
+ "worktree",
 ]
 
 [[package]]
@@ -8513,6 +8537,12 @@ checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
 dependencies = [
  "cc",
 ]
+
+[[package]]
+name = "icon-rs"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2142badde61d1ab4fd2b6da353f619e48e35e699f519d5b8076ea5aa5a6e6348"
 
 [[package]]
 name = "icons"
@@ -22777,6 +22807,7 @@ dependencies = [
  "askpass",
  "assets",
  "audio",
+ "audio_player",
  "auto_update",
  "auto_update_ui",
  "breadcrumbs",

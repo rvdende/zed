@@ -15,6 +15,7 @@ members = [
     "crates/askpass",
     "crates/assets",
     "crates/audio",
+    "crates/audio_player",
     "crates/auto_update",
     "crates/auto_update_helper",
     "crates/auto_update_ui",
@@ -290,6 +291,7 @@ anthropic = { path = "crates/anthropic" }
 askpass = { path = "crates/askpass" }
 assets = { path = "crates/assets" }
 audio = { path = "crates/audio" }
+audio_player = { path = "crates/audio_player" }
 auto_update = { path = "crates/auto_update" }
 auto_update_ui = { path = "crates/auto_update_ui" }
 aws_http_client = { path = "crates/aws_http_client" }
@@ -639,6 +641,7 @@ http = "1.1"
 http-body = "1.0"
 httparse = "1.10"
 human_bytes = "0.4.1"
+icon-rs = "0.3.13"
 idna = "1.0"
 ignore = "0.4.22"
 # image's default features minus "avif", which only adds an encoder (rav1e);
@@ -823,6 +826,8 @@ streaming-iterator = "0.1"
 strsim = "0.11"
 strum = { version = "0.28", features = ["derive"] }
 swash = "0.2.6"
+# Matches the version rodio decodes with, so the two share one build and its codec features.
+symphonia = { version = "0.5.5", default-features = false }
 syn = { version = "2.0.101", features = ["full", "extra-traits", "visit-mut"] }
 sys-locale = "0.3.1"
 sysinfo = "0.37.0"

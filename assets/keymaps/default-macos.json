@@ -1621,6 +1621,16 @@
     },
   },
   {
+    "context": "AudioPlayer",
+    "bindings": {
+      "space": "audio_player::TogglePlayback",
+      "left": "audio_player::SeekBackward",
+      "right": "audio_player::SeekForward",
+      "r": "audio_player::ToggleRepeat",
+      "m": "audio_player::ToggleMute",
+    },
+  },
+  {
     "context": "ImageViewer",
     "use_key_equivalents": true,
     "bindings": {

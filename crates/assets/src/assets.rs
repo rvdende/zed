@@ -23,8 +23,21 @@ util::fs_embed! {
     exclude = ["themes/src/*", "*.DS_Store"],
 }
 
+/// Icons from the `icon-rs` crate are served at `icons/icon_rs/<name>.svg`. Embedded icons are
+/// rendered as a mask tinted with the text colour, so the crate's ink and accent colours don't
+/// matter here.
+pub const ICON_RS_PREFIX: &str = "icons/icon_rs/";
+
 impl AssetSource for Assets {
     fn load(&self, path: &str) -> Result<Option<std::borrow::Cow<'static, [u8]>>> {
+        if let Some(name) = path
+            .strip_prefix(ICON_RS_PREFIX)
+            .and_then(|path| path.strip_suffix(".svg"))
+        {
+            let icon = icon_rs::get(name)
+                .with_context(|| format!("no icon-rs icon named {name:?}"))?;
+            return Ok(Some(icon.svg.as_bytes().into()));
+        }
         Self::get(path)
             .map(|f| Some(f.data))
             .with_context(|| format!("loading asset at path {path:?}"))

@@ -14,4 +14,5 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 gpui.workspace = true
+icon-rs.workspace = true
 util.workspace = true
