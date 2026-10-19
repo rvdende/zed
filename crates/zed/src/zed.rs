@@ -6127,7 +6127,7 @@ mod tests {
                 cx,
             );
             image_viewer::init(cx);
-            audio_player::init(cx);
+            media_player::init(cx);
             language_model::init(cx);
             client::RefreshLlmTokenListener::register(
                 app_state.client.clone(),

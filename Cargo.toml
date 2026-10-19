@@ -15,7 +15,6 @@ members = [
     "crates/askpass",
     "crates/assets",
     "crates/audio",
-    "crates/audio_player",
     "crates/auto_update",
     "crates/auto_update_helper",
     "crates/auto_update_ui",
@@ -137,6 +136,7 @@ members = [
     "crates/markdown",
     "crates/markdown_preview",
     "crates/media",
+    "crates/media_player",
     "crates/menu",
     "crates/mermaid_render",
     "crates/migrator",
@@ -291,7 +291,6 @@ anthropic = { path = "crates/anthropic" }
 askpass = { path = "crates/askpass" }
 assets = { path = "crates/assets" }
 audio = { path = "crates/audio" }
-audio_player = { path = "crates/audio_player" }
 auto_update = { path = "crates/auto_update" }
 auto_update_ui = { path = "crates/auto_update_ui" }
 aws_http_client = { path = "crates/aws_http_client" }
@@ -406,6 +405,7 @@ lsp_locations = { path = "crates/lsp_locations" }
 markdown = { path = "crates/markdown" }
 markdown_preview = { path = "crates/markdown_preview" }
 media = { path = "crates/media" }
+media_player = { path = "crates/media_player" }
 menu = { path = "crates/menu" }
 mermaid_render = { path = "crates/mermaid_render" }
 migrator = { path = "crates/migrator" }

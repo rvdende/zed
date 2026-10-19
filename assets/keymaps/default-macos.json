@@ -1621,13 +1621,13 @@
     },
   },
   {
-    "context": "AudioPlayer",
+    "context": "MediaPlayer",
     "bindings": {
-      "space": "audio_player::TogglePlayback",
-      "left": "audio_player::SeekBackward",
-      "right": "audio_player::SeekForward",
-      "r": "audio_player::ToggleRepeat",
-      "m": "audio_player::ToggleMute",
+      "space": "media_player::TogglePlayback",
+      "left": "media_player::SeekBackward",
+      "right": "media_player::SeekForward",
+      "r": "media_player::ToggleRepeat",
+      "m": "media_player::ToggleMute",
     },
   },
   {

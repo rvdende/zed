@@ -82,7 +82,6 @@ anyhow.workspace = true
 askpass.workspace = true
 assets.workspace = true
 audio.workspace = true
-audio_player.workspace = true
 auto_update.workspace = true
 auto_update_ui.workspace = true
 breadcrumbs.workspace = true
@@ -166,6 +165,7 @@ log.workspace = true
 lsp_locations.workspace = true
 markdown.workspace = true
 markdown_preview.workspace = true
+media_player.workspace = true
 menu.workspace = true
 migrator.workspace = true
 mimalloc = { version = "0.1", optional = true }

@@ -1366,29 +1366,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "audio_player"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "assets",
- "audio",
- "editor",
- "file_icons",
- "gpui",
- "language",
- "log",
- "project",
- "rodio",
- "settings",
- "symphonia",
- "theme_settings",
- "ui",
- "util",
- "workspace",
- "worktree",
-]
-
-[[package]]
 name = "auditable-serde"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10762,6 +10739,33 @@ dependencies = [
  "foreign-types 0.5.0",
  "metal",
  "objc",
+]
+
+[[package]]
+name = "media_player"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "assets",
+ "audio",
+ "editor",
+ "file_icons",
+ "gpui",
+ "image",
+ "language",
+ "log",
+ "project",
+ "rodio",
+ "serde",
+ "serde_json",
+ "settings",
+ "symphonia",
+ "tempfile",
+ "theme_settings",
+ "ui",
+ "util",
+ "workspace",
+ "worktree",
 ]
 
 [[package]]
@@ -22807,7 +22811,6 @@ dependencies = [
  "askpass",
  "assets",
  "audio",
- "audio_player",
  "auto_update",
  "auto_update_ui",
  "breadcrumbs",
@@ -22880,6 +22883,7 @@ dependencies = [
  "lsp_locations",
  "markdown",
  "markdown_preview",
+ "media_player",
  "menu",
  "migrator",
  "mimalloc",

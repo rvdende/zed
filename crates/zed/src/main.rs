@@ -727,7 +727,7 @@ fn main() {
 
         editor::init(cx);
         image_viewer::init(cx);
-        audio_player::init(cx);
+        media_player::init(cx);
         repl::notebook::init(cx);
         diagnostics::init(cx);
 

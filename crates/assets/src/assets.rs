@@ -34,8 +34,8 @@ impl AssetSource for Assets {
             .strip_prefix(ICON_RS_PREFIX)
             .and_then(|path| path.strip_suffix(".svg"))
         {
-            let icon = icon_rs::get(name)
-                .with_context(|| format!("no icon-rs icon named {name:?}"))?;
+            let icon =
+                icon_rs::get(name).with_context(|| format!("no icon-rs icon named {name:?}"))?;
             return Ok(Some(icon.svg.as_bytes().into()));
         }
         Self::get(path)

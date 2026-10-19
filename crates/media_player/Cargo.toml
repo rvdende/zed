@@ -1,5 +1,5 @@
 [package]
-name = "audio_player"
+name = "media_player"
 version = "0.1.0"
 edition.workspace = true
 publish.workspace = true
@@ -9,7 +9,7 @@ license = "GPL-3.0-or-later"
 workspace = true
 
 [lib]
-path = "src/audio_player.rs"
+path = "src/media_player.rs"
 doctest = false
 
 [dependencies]
@@ -19,10 +19,13 @@ audio.workspace = true
 editor.workspace = true
 file_icons.workspace = true
 gpui.workspace = true
+image.workspace = true
 language.workspace = true
 log.workspace = true
 project.workspace = true
 rodio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 settings.workspace = true
 symphonia.workspace = true
 theme_settings.workspace = true
@@ -30,3 +33,6 @@ ui.workspace = true
 util.workspace = true
 workspace.workspace = true
 worktree.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
