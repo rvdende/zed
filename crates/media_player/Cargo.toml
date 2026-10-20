@@ -23,7 +23,8 @@ image.workspace = true
 language.workspace = true
 log.workspace = true
 project.workspace = true
-rodio.workspace = true
+# The workspace disables rodio's default features, which include every decoder except WAV.
+rodio = { workspace = true, features = ["flac", "mp3", "mp4", "vorbis"] }
 serde.workspace = true
 serde_json.workspace = true
 settings.workspace = true

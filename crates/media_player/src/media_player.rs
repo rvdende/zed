@@ -1349,6 +1349,23 @@ mod tests {
     }
 
     #[test]
+    fn decodes_compressed_audio_extensions() {
+        use symphonia::core::codecs::{
+            CODEC_TYPE_AAC, CODEC_TYPE_FLAC, CODEC_TYPE_MP3, CODEC_TYPE_VORBIS,
+        };
+
+        let codecs = symphonia::default::get_codecs();
+        for (name, codec) in [
+            ("mp3", CODEC_TYPE_MP3),
+            ("flac", CODEC_TYPE_FLAC),
+            ("vorbis", CODEC_TYPE_VORBIS),
+            ("aac", CODEC_TYPE_AAC),
+        ] {
+            assert!(codecs.get_codec(codec).is_some(), "no {name} decoder");
+        }
+    }
+
+    #[test]
     fn rejects_garbage() {
         assert!(analyze(vec![0u8; 64].into(), "mp3").is_err());
     }
