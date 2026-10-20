@@ -187,3 +187,12 @@ Rules emerge from validated patterns, not one-off observations. The workflow is:
 1. Agent notes a pattern during a session.
 2. Team validates the pattern in code review.
 3. A dedicated commit adds the rule with context on *why* it exists.
+
+# Fork releases (rvdende/zed)
+
+* Tag fork releases `v<upstream version>-rvdende.<N>` (e.g. `v1.19.0-rvdende.2`); leave the Cargo version at upstream's.
+* Never publish a Linux bundle built directly on the dev machine: it links against the host glibc (2.43 on Ubuntu 26.04) and won't run on older distros. Build it in an Ubuntu 20.04 container (glibc 2.31), like upstream's release CI:
+  - Image: `FROM ubuntu:20.04`, install `lsb-release ca-certificates curl gnupg sudo`, run `script/linux` and `script/install-cmake 3.30.4`, set `CC=clang-18 CXX=clang++-18`, and `git config --global --add safe.directory '*'`.
+  - Run `script/bundle-linux` with the repo mounted and `CARGO_TARGET_DIR=target/focal`, so the host's `target/` stays untouched, then `chown` the output back to the host user.
+  - Verify before uploading: `objdump -T <zed-editor> | grep -oE 'GLIBC_[0-9.]+' | sort -Vu | tail -1` must print 2.31 or lower.
+* Upload `target/focal/release/zed-linux-x86_64.tar.gz` and `target/focal/zed-remote-server-linux-x86_64.gz` with `gh release create`.
