@@ -1,4 +1,5 @@
 use std::mem;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -7,7 +8,7 @@ use file_icons::FileIcons;
 use gpui::{
     App, Bounds, Context, DevicePixels, Entity, EventEmitter, FocusHandle, Focusable, IntoElement,
     MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, ParentElement, ParsedSvg,
-    PinchEvent, Pixels, Point, Render, RenderImage, ScrollDelta, ScrollWheelEvent, Styled,
+    PinchEvent, Pixels, Point, Render, RenderImage, ScrollDelta, ScrollEvent, Styled,
     Subscription, SvgSize, Task, WeakEntity, Window, canvas, div, img, point, px, size,
 };
 use image_viewer::{FitToView, ResetZoom, ZoomIn, ZoomOut, ZoomToActualSize};
@@ -303,7 +304,7 @@ impl SvgPreviewView {
 
     fn handle_scroll_wheel(
         &mut self,
-        event: &ScrollWheelEvent,
+        event: &ScrollEvent,
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -409,18 +410,17 @@ impl SvgPreviewView {
         )
     }
 
+    pub fn is_svg_path(path: &Path) -> bool {
+        path.extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("svg"))
+    }
+
     pub fn is_svg_file(buffer: &Entity<MultiBuffer>, cx: &App) -> bool {
         buffer
             .read(cx)
             .as_singleton()
             .and_then(|buffer| buffer.read(cx).file())
-            .is_some_and(|file| Self::is_svg_path(file.file_name(cx)))
-    }
-
-    pub fn is_svg_path(path: impl AsRef<std::path::Path>) -> bool {
-        path.as_ref()
-            .extension()
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("svg"))
+            .is_some_and(|file| Self::is_svg_path(Path::new(file.file_name(cx))))
     }
 
     pub fn open_preview_in_pane(
@@ -519,8 +519,11 @@ impl SvgPreviewView {
 
     pub fn register(workspace: &mut Workspace, _window: &mut Window, _cx: &mut Context<Workspace>) {
         workspace.register_action(move |workspace, _: &OpenPreview, window, cx| {
-            if let Some(buffer) = Self::resolve_active_item_as_svg_buffer(workspace, cx) {
-                let pane = workspace.active_pane().clone();
+            if let Some(item) = workspace.item_for_action(window, cx)
+                && let Some(buffer) = item.act_as::<MultiBuffer>(cx)
+                && Self::is_svg_file(&buffer, cx)
+                && let Some(pane) = workspace.pane_for_item_id(item.item_id())
+            {
                 Self::open_preview_in_pane(workspace, buffer, pane, window, cx);
             }
         });
@@ -572,7 +575,7 @@ impl Render for SvgPreviewView {
             .relative()
             .overflow_hidden()
             .bg(cx.theme().colors().editor_background)
-            .on_scroll_wheel(cx.listener(Self::handle_scroll_wheel))
+            .on_scroll(cx.listener(Self::handle_scroll_wheel))
             .on_pinch(cx.listener(Self::handle_pinch))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::handle_mouse_down))
             .on_mouse_down(MouseButton::Middle, cx.listener(Self::handle_mouse_down))
