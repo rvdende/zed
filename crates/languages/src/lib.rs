@@ -178,6 +178,10 @@ pub fn init(languages: Arc<LanguageRegistry>, fs: Arc<dyn Fs>, node: NodeRuntime
             semantic_token_rules: Some(python::semantic_token_rules()),
         },
         LanguageInfo {
+            name: "ron",
+            ..Default::default()
+        },
+        LanguageInfo {
             name: "rust",
             adapters: vec![rust_lsp_adapter],
             context: Some(rust_context_provider),
@@ -530,5 +534,69 @@ mod tests {
         assert_eq!(language_of(".env", cx), Some("Env".into()));
         assert_eq!(language_of(".envrc", cx), Some("Shell Script".into()));
         assert_eq!(language_of("deploy.sh", cx), Some("Shell Script".into()));
+    }
+}
+
+#[cfg(test)]
+mod ron_tests {
+    use tree_sitter::StreamingIterator as _;
+
+    use super::*;
+
+    #[test]
+    fn test_ron_highlights() {
+        let grammar: tree_sitter::Language = tree_sitter_ron::LANGUAGE.into();
+        // Fails if any of the bundled queries don't compile against the grammar.
+        language("ron", grammar.clone());
+
+        let query = tree_sitter::Query::new(
+            &grammar,
+            include_str!("../../grammars/src/ron/highlights.scm"),
+        )
+        .expect("RON highlights query should compile");
+        let source = r#"(
+            id: "2026-11-09_12-48-07",
+            stitch: None,
+            device: Some("EPSON L5290"),
+            rotated_cw: -180,
+            score: 0.88,
+            enabled: true,
+            // a comment
+            empty: (),
+        )"#;
+        let mut parser = tree_sitter::Parser::new();
+        parser.set_language(&grammar).unwrap();
+        let tree = parser.parse(source, None).expect("RON source should parse");
+        assert!(!tree.root_node().has_error());
+
+        let mut cursor = tree_sitter::QueryCursor::new();
+        let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+        let mut captures = Vec::new();
+        while let Some(query_match) = matches.next() {
+            for capture in query_match.captures() {
+                captures.push((
+                    source[capture.node.byte_range()].to_owned(),
+                    query.capture_names()[capture.index as usize].to_owned(),
+                ));
+            }
+        }
+
+        for expected in [
+            ("id", "property"),
+            ("\"2026-11-09_12-48-07\"", "string"),
+            ("None", "constant"),
+            ("Some", "type"),
+            ("-", "operator"),
+            ("180", "number"),
+            ("0.88", "number"),
+            ("true", "boolean"),
+            ("// a comment", "comment"),
+            ("()", "type.builtin"),
+        ] {
+            assert!(
+                captures.contains(&(expected.0.into(), expected.1.into())),
+                "missing {expected:?} in {captures:?}"
+            );
+        }
     }
 }

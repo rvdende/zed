@@ -1,0 +1,22 @@
+[package]
+name = "tree-sitter-ron"
+version = "0.1.0"
+edition.workspace = true
+publish = false
+license = "Apache-2.0"
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/tree_sitter_ron.rs"
+doctest = false
+
+[dependencies]
+tree-sitter-language = "0.1"
+
+[build-dependencies]
+cc = "1.0"
+
+[dev-dependencies]
+tree-sitter.workspace = true
