@@ -891,7 +891,7 @@ pub(crate) fn render_buffer_header(
                                                 move |editor, e: &ClickEvent, window, cx| {
                                                     editor.open_excerpts_common(
                                                         Some(jump_data.clone()),
-                                                        e.modifiers().secondary(),
+                                                        e.modifiers().secondary(cx),
                                                         window,
                                                         cx,
                                                     );
@@ -965,7 +965,7 @@ pub(crate) fn render_buffer_header(
                                                 move |editor, e: &ClickEvent, window, cx| {
                                                     editor.open_excerpts_common(
                                                         Some(jump_data.clone()),
-                                                        e.modifiers().secondary(),
+                                                        e.modifiers().secondary(cx),
                                                         window,
                                                         cx,
                                                     );
@@ -981,7 +981,7 @@ pub(crate) fn render_buffer_header(
                                 if e.modifiers().alt {
                                     editor.open_excerpts_common(
                                         Some(jump_data.clone()),
-                                        e.modifiers().secondary(),
+                                        e.modifiers().secondary(cx),
                                         window,
                                         cx,
                                     );
