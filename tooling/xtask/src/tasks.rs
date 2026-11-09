@@ -1,6 +1,7 @@
 pub mod clippy;
 pub mod compliance;
 pub mod gpui;
+pub mod install_local;
 pub mod licenses;
 pub mod package_conformity;
 pub mod sandbox_tests;
